@@ -1,4 +1,4 @@
-﻿# code in this file is adpated from rpmcruz/autoaugment
+# code in this file is adpated from rpmcruz/autoaugment
 # https://github.com/rpmcruz/autoaugment/blob/master/transformations.py
 import random
 
@@ -294,7 +294,7 @@ class CutoutDefault(object):
 class RandAugment:
     def __init__(self, n, m, img_size):
         self.n = n
-        self.m = m      # [0, 30]
+        self.m = m      
         if img_size == 32:
             self.augment_list = augment_list_32()
         if img_size == 64:
