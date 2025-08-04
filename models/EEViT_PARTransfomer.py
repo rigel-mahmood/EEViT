@@ -68,18 +68,17 @@ class EEViT_PARAttention(nn.Module):
         self. apply_pe_all_layers =  apply_pe_all_layers
         self.num_layers = num_layers
         self.segment_size = segment_len # should divide evenly
-        # For example, if context_len = 1536, and num_segments = 2, then
-        # segment_size = 768
+        
         assert (self.segment_len * num_segments == sequence_len), 'segment_length times num_segments should be equal to sequence length'
         self.layer_num = layer_num # for PerceiverAR, first layer is different
         self.dim_head = dim//heads  # e.g., 512/8 = 64
-        self.scale = self.dim_head ** -0.5  # 1/8
+        self.scale = self.dim_head ** -0.5  
         self.use_cls_token_last_n_layers = use_cls_token_last_n_layers
 
         self.heads = heads
         self.causal = causal
 
-        self.norm = nn.LayerNorm(self.dim_head)  # (64)
+        self.norm = nn.LayerNorm(self.dim_head)  
 
         self.pos_emb = default(pos_emb, RotaryEmbedding(self.dim_head))
         self.attn_dropout = nn.Dropout(dropout)
@@ -103,26 +102,25 @@ class EEViT_PARAttention(nn.Module):
 
         context_len = x.shape[1] - self.latent_len
         if self.layer_num == 0:
-            x_latent = x[:,context_len:,:] # [:, 0:context_len,:]
+            x_latent = x[:,context_len:,:] 
         else:
             x_latent = x
 
         # get queries, keys, values
         qkv = (self.to_q(x), self.to_kv(x))
-        padded_len = x.shape[-2]    # 1024
+        padded_len = x.shape[-2]    
         padded_len_q = x_latent.shape[-2]
         # get sequence range, for calculating mask
         seq_range = torch.arange(padded_len, device = device)
-        #seq_range_q = torch.arange(padded_len_q, device = device)
-
+        
         # split heads
-        q, kv = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h = h), qkv)  # b = 4, n = 1024, h = 8, d = 64; 
+        q, kv = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h = h), qkv)  
 
         # rotary embedding
         if exists(self.pos_emb):
             if self.layer_num == 0:
-                rotary_emb = self.pos_emb(seq_range, cache_key = padded_len) # (1024, 64)
-                rotary_emb = rearrange(rotary_emb, 'n d -> () n d') # (1,1024,64)
+                rotary_emb = self.pos_emb(seq_range, cache_key = padded_len) 
+                rotary_emb = rearrange(rotary_emb, 'n d -> () n d') 
                 q, kv = map(lambda t: apply_rotary_emb(rotary_emb, t), (q, kv))
 
         q = q * self.scale # scale queries
@@ -140,10 +138,10 @@ class EEViT_PARAttention(nn.Module):
         if self.layer_num < self.k_context_layers:
             lkv_context = self.norm(kv_context)
 
-        lsim_latent = einsum('b i j, b k j -> b i k', q_latent, kv) # [24,3,256,512] #'ij, kj -> ik
+        lsim_latent = einsum('b i j, b k j -> b i k', q_latent, kv) 
 
         if self.layer_num < self.k_context_layers:
-            lsim_context = einsum('b i j, b k j -> b i k', q_context, kv_context) # [24,3,256,512] #'ij, kj -> ik
+            lsim_context = einsum('b i j, b k j -> b i k', q_context, kv_context) 
 
         attn_latent= lsim_latent.softmax(dim=-1)
         attn_latent = self.attn_dropout(attn_latent)
