@@ -67,30 +67,29 @@ class PARAttention(nn.Module):
         self.num_segments = num_segments
         self. apply_pe_all_layers =  apply_pe_all_layers
         self.segment_size = segment_len # should divide evenly
-        # For example, if context_len = 1536, and num_segments = 2, then
-        # segment_size = 768
+        
         assert (self.segment_len * num_segments == sequence_len), 'segment_length times num_segments should be equal to sequence length'
         self.layer_num = layer_num # for PerceiverAR, first layer is different
         self.dim_head = dim//heads  # e.g., 512/8 = 64
-        self.scale = self.dim_head ** -0.5  # 1/8
+        self.scale = self.dim_head ** -0.5  
 
         self.heads = heads
         self.causal = causal
 
-        self.norm = nn.LayerNorm(self.dim_head)  # (64)
+        self.norm = nn.LayerNorm(self.dim_head)  
 
         self.pos_emb = default(pos_emb, RotaryEmbedding(self.dim_head))
         self.attn_dropout = nn.Dropout(dropout)
 
-        self.to_q = nn.Linear(dim, dim, bias = False)  # (512, 512)
-        self.to_kv = nn.Linear(dim, dim, bias = False)    # (512, 512)
-        self.to_out = nn.Linear(dim, dim) # (512, 512)
-        self.to_out_0 = nn.Linear(dim, dim) # (512, 512)
+        self.to_q = nn.Linear(dim, dim, bias = False)  
+        self.to_kv = nn.Linear(dim, dim, bias = False)    
+        self.to_out = nn.Linear(dim, dim) 
+        self.to_out_0 = nn.Linear(dim, dim) 
 
        
 
 
-    def forward(self, x, mask = None): # e.g., x has shape of (b, n, d)
+    def forward(self, x, mask = None): 
         b, n, *_, h, device, causal = *x.shape, self.heads, x.device, self.causal, 
 
         mask_value = -torch.finfo(x.dtype).max
@@ -101,14 +100,14 @@ class PARAttention(nn.Module):
             x_latent = x
 
         qkv = (self.to_q(x), self.to_kv(x))
-        padded_len = x.shape[-2]    # 1024
+        padded_len = x.shape[-2]    
         padded_len_q = x_latent.shape[-2]
         # get sequence range, for calculating mask
         seq_range = torch.arange(padded_len, device = device)
 
         # split heads
-        q, kv = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h = h), qkv)  # b = 4, n = 1024, h = 8, d = 64; 
-        # q, kv = [32, 1024, 64]    # (4, 1024, (8x64=512)) --> ((4x8), 1024, 64), h=8
+        q, kv = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h = h), qkv) 
+        
         # rotary embedding
         if exists(self.pos_emb):
             if self.layer_num == 0:
@@ -124,13 +123,13 @@ class PARAttention(nn.Module):
             q_latent = q
 
         lkv = self.norm(kv)
-        lsim = einsum('b i j, b k j -> b i k', q_latent, kv) # [24,3,256,512] #'ij, kj -> ik
+        lsim = einsum('b i j, b k j -> b i k', q_latent, kv) 
 
         attn= lsim.softmax(dim=-1)
         attn = self.attn_dropout(attn)
 
         # masking
-        m_size = lsim.shape[-2]  # 256
+        m_size = lsim.shape[-2]  
 
         out = einsum('b i j, b j k->b i k',attn,lkv)
         out = rearrange(out, '(b h) n d -> b (n) (h d)', h = h)
