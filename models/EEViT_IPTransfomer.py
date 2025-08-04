@@ -82,29 +82,28 @@ class EEViT_IPAttention(nn.Module):
        
 
 
-    def forward(self, x, mask = None): # e.g., x has shape of (4,1024,512)
+    def forward(self, x, mask = None): 
         b, n, *_, h, device, causal = *x.shape, self.heads, x.device, self.causal, 
 
         mask_value = -torch.finfo(x.dtype).max
 
         # get queries, keys, values
-        qkv = (self.to_q(x), self.to_kv(x))  # x = (4, 1024, 512)
+        qkv = (self.to_q(x), self.to_kv(x))  
         padded_len = x.shape[-2]    # 1024
         # get sequence range, for calculating mask
         seq_range = torch.arange(padded_len, device = device)
 
         # split heads
-        q, kv = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h = h), qkv)  # b = 4, n = 1024, h = 8, d = 64; 
-        # q, kv = [32, 1024, 64]    # (4, 1024, (8x64=512)) --> ((4x8), 1024, 64), h=8
+        q, kv = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h = h), qkv)  
         # rotary embedding
         if exists(self.pos_emb):
             if self.layer_num == 0:
-                rotary_emb = self.pos_emb(seq_range, cache_key = padded_len) # (1024, 64)
-                rotary_emb = rearrange(rotary_emb, 'n d -> () n d') # (1,1024,64)
+                rotary_emb = self.pos_emb(seq_range, cache_key = padded_len) 
+                rotary_emb = rearrange(rotary_emb, 'n d -> () n d') 
                 q, kv = map(lambda t: apply_rotary_emb(rotary_emb, t), (q, kv))
             if self.layer_num > 0 and self.apply_pe_all_layers == True:
-                rotary_emb = self.pos_emb(seq_range, cache_key = padded_len) # (1024, 64)
-                rotary_emb = rearrange(rotary_emb, 'n d -> () n d') # (1,1024,64)
+                rotary_emb = self.pos_emb(seq_range, cache_key = padded_len) 
+                rotary_emb = rearrange(rotary_emb, 'n d -> () n d') 
                 q, kv = map(lambda t: apply_rotary_emb(rotary_emb, t), (q, kv))
 
         q = q * self.scale # scale queries
@@ -130,8 +129,8 @@ class EEViT_IPAttention(nn.Module):
         out0 = einsum('c s i j, c s j d -> c s i d', attnd_0, kvs[:,0:1,:,:])
         out1 = einsum('c s i j, c s j d -> c s i d', attnd_1, kvs_ccs)
  
-        out1 = rearrange(out1,'c s z d-> c (s z) d') # merge segments  [24,1024,128]
-        out_1 = rearrange(out1, '(b h) n d -> b (n) (h d)', h = h)  # [b,1024,6x128]
+        out1 = rearrange(out1,'c s z d-> c (s z) d') # merge segments  
+        out_1 = rearrange(out1, '(b h) n d -> b (n) (h d)', h = h)  
         out_1o = self.to_out(out_1)
         out0 = rearrange(out0,'c s z d-> c (s z) d') # merge segments
         out_0 = rearrange(out0, '(b h) n d -> b (n) (h d)', h = h)
