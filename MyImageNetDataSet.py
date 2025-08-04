@@ -7,7 +7,6 @@ import json
 # Define the custom dataset class for the ImageNet dataset
 class MyImageNetDataset(Dataset):
     def __init__(self, root, split, transform=None):
-        #root = "C:/ImagenetData/ILSVRC/Data/CLS-LOC"
         self.samples = []  # List to store paths to images
         self.targets = []  # List to store corresponding class labels for images
         self.transform = transform  # Transformation function to apply to images (e.g., normalization)
