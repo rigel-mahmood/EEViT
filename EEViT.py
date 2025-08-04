@@ -42,13 +42,13 @@ parser.add_argument('--lr', default=1e-4, type=float, help='learning rate') # re
 parser.add_argument('--opt', default="adam")
 parser.add_argument('--noamp', action='store_true', help='disable mixed precision training. for older pytorch versions')
 parser.add_argument('--resume', default=False, help='resume from checkpoint')
-parser.add_argument('--noaug', default=True, help='disable use randomaug')
+parser.add_argument('--aug', default=False, help='disable use randomaug')
 parser.add_argument('--nowandb', action='store_true', help='disable wandb')
 parser.add_argument('--mixup', action='store_true', help='add mixup augumentations')
-parser.add_argument('--net', default='EEViT_PAR') # options: vit, swin, cait, twins, par (perceiverAR), EEViT_IP, EEViT_PAR
+parser.add_argument('--net', default='EEViT_IP') # options: vit, swin, cait, twins, par (perceiverAR), EEViT_IP, EEViT_PAR
 parser.add_argument('--heads', default='6')
 parser.add_argument('--layers', default='8')  # depth
-parser.add_argument('--bs', default='64')  # was 512
+parser.add_argument('--bs', default='128')  # was 512
 parser.add_argument('--image_size', default="32") #Imagesize: 32 for CIFAR, SVHN; 224 for imagenet, 64 for TinyImageNet
 parser.add_argument('--n_epochs', type=int, default='200')
 parser.add_argument('--patch_size', default='4', type=int, help="patch size for ViT") #4; 14 for imagenet, 8 for TinyImageNet
@@ -67,9 +67,7 @@ def main():
 
     bs = int(args.bs)
     imsize = int(args.image_size)
-
     use_amp = not args.noamp
-    aug = args.noaug
 
     best_acc = 0  # best test accuracy
     start_epoch = 0  # start from epoch 0 or last checkpoint epoch
@@ -81,17 +79,17 @@ def main():
     else:
         size = imsize 
     if args.dataset == "CIFAR10":
-        trainloader, testloader = Utils.get_loaders_CIFAR10(size, bs, aug=args.noaug)
+        trainloader, testloader = Utils.get_loaders_CIFAR10(size, bs, aug=args.aug)
     if args.dataset == "CIFAR10" and size == 224:
-        trainloader, testloader = Utils.get_loaders_CIFAR10_224(size, bs, aug=args.noaug)
+        trainloader, testloader = Utils.get_loaders_CIFAR10_224(size, bs, aug=args.aug)
     if args.dataset == "CIFAR100":
-        trainloader, testloader = Utils.get_loaders_CIFAR100(size, bs, aug=args.noaug)
+        trainloader, testloader = Utils.get_loaders_CIFAR100(size, bs, aug=args.aug)
     if args.dataset == "SVHN":
-        trainloader, testloader = Utils.get_loaders_SVHN(size, bs, aug=args.noaug)
+        trainloader, testloader = Utils.get_loaders_SVHN(size, bs, aug=args.aug)
     if args.dataset == "TINYIMAGENET":
-        trainloader, testloader = UtilsTinyImagenet.get_loaders_tiny_imagenet(mainDir_TinyImageNet, bs, aug=args.noaug)
+        trainloader, testloader = UtilsTinyImagenet.get_loaders_tiny_imagenet(mainDir_TinyImageNet, bs, aug=args.aug)
     if args.dataset == "Imagenet":
-        trainloader, testloader = Utils.get_loaders_imagenet(size, bs, aug=args.noaug)
+        trainloader, testloader = Utils.get_loaders_imagenet(size, bs, aug=args.aug)
 
     classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
@@ -116,8 +114,8 @@ def main():
             num_layers = int(args.layers), 
             heads = int(args.heads), 
             sequence_len = int(size/int(args.patch_size)) * int(size/int(args.patch_size)), 
-            segment_len = 8, #16; 32 for imagenet, 16 for tinyimagenet, 64 for imagenet
-            num_segments = 8, #4; 8 for imagenet
+            segment_len = 16, #16; 32 for imagenet, 16 for tinyimagenet, 64 for imagenet
+            num_segments = 4, #4; 8 for imagenet
             ff_dropout=0.1, 
             attn_dropout = 0.1,
             apply_pe_all_layers = True,
@@ -133,7 +131,7 @@ def main():
             num_tokens = int(args.dataset_classes),   
             num_layers = int(args.layers), 
             heads = int(args.heads), 
-            sequence_len = 64, #int(1024/(args.patch*args.patch)), # for CIFAR-10/100
+            sequence_len = 64, # for CIFAR-10/100
             segment_len = 16,
             num_segments = 4,
             ff_dropout=0.1, 
@@ -160,7 +158,7 @@ def main():
             use_cls_token_last_n_layers = int(args.use_cls_token_last_n_layers)
          ).cuda()
     if args.net=="cait":
-        model = CaiT(
+        net = CaiT(
             image_size = size,
             patch_size = args.patch_size,
             num_classes = int(args.dataset_classes),
@@ -175,7 +173,7 @@ def main():
         )
     if args.net == "twins":
         model_names = timm.list_models()
-        model = twins.Twins(
+        net = twins.Twins(
             num_classes= int(args.dataset_classes),
             img_size=size, patch_size=args.patch_size,
             embed_dims=[64, 128, 320, 512], num_heads=[1, 2, 5, 8], mlp_ratios=[8, 8, 4, 4],
@@ -184,7 +182,7 @@ def main():
             drop_path_rate=0.1,
         )
     elif args.net=="swin":
-        model = swin_t(window_size=args.patch_size,
+        net = swin_t(window_size=args.patch_size,
                     num_classes=int(args.dataset_classes),
                     downscaling_factors=(2,2,2,1))
 
