@@ -6,7 +6,9 @@ import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 import numpy as np
 import sys
-
+import warnings
+# Suppress ALL FutureWarnings coming from timm
+warnings.filterwarnings("ignore", category=FutureWarning, module="timm")
 import torchvision
 import torchvision.transforms as transforms
 
@@ -25,6 +27,7 @@ from EEViT_PARTransfomer import EEViT_PARTransformer
 from models.swin import swin_t
 from models.cait import CaiT
 import twins
+import EEViTIPFaster
 
 import Utils
 import UtilsTinyImagenet
@@ -40,19 +43,16 @@ parser.add_argument('--dataset', default='CIFAR10') # options: CIFAR10, CIFAR100
 parser.add_argument('--dataset_classes', default='10') # options: 10 for CIFAR10, 100 fr CIFAR100, 10 for SVHN, 1000 for Imagenet, 200 for TinyImagenet
 parser.add_argument('--lr', default=1e-4, type=float, help='learning rate') # resnets.. 1e-3, Vit..1e-4
 parser.add_argument('--opt', default="adam")
-parser.add_argument('--noamp', action='store_true', help='disable mixed precision training. for older pytorch versions')
 parser.add_argument('--resume', default=False, help='resume from checkpoint')
-parser.add_argument('--aug', default=False, help='disable use randomaug')
-parser.add_argument('--nowandb', action='store_true', help='disable wandb')
-parser.add_argument('--mixup', action='store_true', help='add mixup augumentations')
-parser.add_argument('--net', default='EEViT_IP') # options: vit, swin, cait, twins, par (perceiverAR), EEViT_IP, EEViT_PAR
+parser.add_argument('--aug', default=True, help='disable use randomaug')
+parser.add_argument('--net', default='EEViT_IP') # options: vit, swin, cait, twins, par (perceiverAR), EEViT_IP, EEViT_PAR, FasterViT, EEViTIPFaster
 parser.add_argument('--heads', default='6')
 parser.add_argument('--layers', default='8')  # depth
-parser.add_argument('--bs', default='128')  # was 512
-parser.add_argument('--image_size', default="32") #Imagesize: 32 for CIFAR, SVHN; 224 for imagenet, 64 for TinyImageNet
+parser.add_argument('--bs', default='64')  # was 512
+parser.add_argument('--image_size', default="32") #Imagesize: 32 for CIFAR, SVHN; 224 for imagenet, 64 for TinyImageNet, use iamge_size=224 for FasterViT and EEViTIPFaster models
 parser.add_argument('--n_epochs', type=int, default='200')
 parser.add_argument('--patch_size', default='4', type=int, help="patch size for ViT") #4; 14 for imagenet, 8 for TinyImageNet
-parser.add_argument('--dim', default="384", type=int) # or 512
+parser.add_argument('--dim', default="384", type=int) 
 parser.add_argument('--use_cls_token', default=False, type=bool, help="use cls token")
 parser.add_argument('--use_cls_token_last_n_layers', default='2', type=int, help="use cls token for last n layers")
 
@@ -63,21 +63,18 @@ def count_parameters(model): # count number of trainable parameters in the model
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 def main():
-    mainDir_TinyImageNet = "c:/tiny-imagenet-200" # tinyimagenet data folder
+    use_amp = True
+    mainDir_TinyImageNet = "c:Data/TinyImagenet/tiny-imagenet-200" # tinyimagenet data folder
 
     bs = int(args.bs)
     imsize = int(args.image_size)
-    use_amp = not args.noamp
 
     best_acc = 0  # best test accuracy
     start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
     # Data
     print('==> Preparing data..')
-    if args.net=="vit_timm":
-        size = 384
-    else:
-        size = imsize 
+    size = imsize 
     if args.dataset == "CIFAR10":
         trainloader, testloader = Utils.get_loaders_CIFAR10(size, bs, aug=args.aug)
     if args.dataset == "CIFAR10" and size == 224:
@@ -186,6 +183,49 @@ def main():
                     num_classes=int(args.dataset_classes),
                     downscaling_factors=(2,2,2,1))
 
+    elif args.net=="FasterViT":
+        net = create_model(
+            'faster_vit_0_any_res',
+            resolution=[224, 224],  # FasterViT uses 224x224 images, so we need to resize images
+            window_size=[4, 4, 4, 4],
+            ct_size=2,
+            dim=64,
+            num_classes=int(args.dataset_classes),
+            pretrained=False
+        )
+        if args.dataset != "Imagenet":   # resize images to 224x224
+            if args.dataset == "CIFAR10":
+                trainloader, testloader = Utils.get_loaders_CIFAR10_224(size, bs, aug=args.aug)
+            if args.dataset == "CIFAR100":
+                trainloader, testloader = Utils.get_loaders_CIFAR100_224(size, bs, aug=args.aug)
+            if args.dataset == "SVHN":
+                trainloader, testloader = Utils.get_loaders_SVHN_224(size, bs, aug=args.aug)
+            if args.dataset == "TINYIMAGENET":
+                trainloader, testloader = UtilsTinyImagenet.get_loaders_tiny_imagenet_224(mainDir_TinyImageNet, bs, aug=args.aug)
+      
+    elif args.net=="EEViTIPFaster":  # to use our EEViT-IP attention in FasterViT
+        net = create_model(
+            'faster_vit_0_any_res',
+            resolution=[224, 224],
+            window_size=[4, 4, 4, 4],
+            ct_size=2,
+            dim=64,
+            num_classes=int(args.dataset_classes),
+            pretrained=False
+        )
+        # replace FasterViT's attention with our IP attention
+        EEViTIPFaster.replace_attention(net, EEViTIPFaster.EEViT_IPAttention, num_segments=8)
+        if args.dataset != "Imagenet":
+            # FasterViT works on 224x224 images only
+            if args.dataset == "CIFAR10":
+                trainloader, testloader = Utils.get_loaders_CIFAR10_224(size, bs, aug=args.aug)
+            if args.dataset == "CIFAR100":
+                trainloader, testloader = Utils.get_loaders_CIFAR100_224(size, bs, aug=args.aug)
+            if args.dataset == "SVHN":
+                trainloader, testloader = Utils.get_loaders_SVHN_224(size, bs, aug=args.aug)
+            if args.dataset == "TINYIMAGENET":
+                trainloader, testloader = UtilsTinyImagenet.get_loaders_tiny_imagenet_224(mainDir_TinyImageNet, bs, aug=args.aug)
+
     net = net.cuda()
  
     pcount = count_parameters(net)
@@ -209,7 +249,6 @@ def main():
         optimizer.load_state_dict(checkpoint['optimizer'])
         scheduler.load_state_dict(checkpoint['scheduler'])
         scaler.load_state_dict(checkpoint['scaler'])
-        #print(scaler)
         val_loss, acc = test(start_epoch, net, testloader, criterion, optimizer, scaler, scheduler, save_best=False)
  
     list_loss = []
