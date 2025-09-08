@@ -4,12 +4,16 @@ EEViT: main file
 
 Requirements.txt: packages required for Python environment
 
-![Table1](https://github.com/user-attachments/assets/f17f8fe5-05d4-4437-9b12-11fa7a7b7160)
-
-![Table 3](https://github.com/user-attachments/assets/e44ce37b-11a4-43dd-a814-1a6eb1fddc33)
-
-![Table 4](https://github.com/user-attachments/assets/1313409d-3203-4760-b0d0-d3d9ba6969c7)
-
-![Table 5](https://github.com/user-attachments/assets/d9fc9edd-e34d-4b01-9bc2-39b51ea9c071)
-
-![Figure 11](https://github.com/user-attachments/assets/774e5cc0-2be0-4439-9d02-8151fdc45285)
+![fig1](https://github.com/user-attachments/assets/ed0a22c6-fc56-4b41-9d67-f7f968dae6aa)
+![fig2](https://github.com/user-attachments/assets/c865bfde-736b-4048-b466-35e792c96118)
+![fig3](https://github.com/user-attachments/assets/50ba222a-1356-4bd9-92ba-6280ea1b7318)
+![fig4](https://github.com/user-attachments/assets/ab9ed84b-88c3-41f3-9fe9-9f07448c85c0)
+![fig5](https://github.com/user-attachments/assets/e3a5525c-aa64-427f-a2b9-622f05b2cd3a)
+![fig6](https://github.com/user-attachments/assets/5535f212-5428-4457-bc34-e225bcd6628c)
+![fig7](https://github.com/user-attachments/assets/983cf2d7-5789-4035-bef1-90a94e223ccd)
+![fig8](https://github.com/user-attachments/assets/d9d192ca-29f4-4083-a859-ffbca8aa8f38)
+![fig9](https://github.com/user-attachments/assets/cb19129a-2e5c-47c0-bb3e-1eb5e911b78a)
+![fig10](https://github.com/user-attachments/assets/a1e47d06-fda9-4aef-84da-bf445bc89aa4)
+![fig11](https://github.com/user-attachments/assets/ba095c4c-dff5-48a1-ac6a-cc4e76c2fc2c)
+![fig12](https://github.com/user-attachments/assets/3335a805-120d-4874-960e-91a6d115b527)
+![fig13](https://github.com/user-attachments/assets/99920dc7-79ba-45cc-b078-db3f989b7dec)
