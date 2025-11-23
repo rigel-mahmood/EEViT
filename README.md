@@ -8,12 +8,6 @@ EEViT: main file
 Requirements.txt: packages required for Python environment
 
 ![fig1](https://github.com/user-attachments/assets/a6e0b6dd-33e2-4125-9c6e-b2bb0eccbc0c)
-![fig2](https://github.com/user-attachments/assets/c865bfde-736b-4048-b466-35e792c96118)
-![fig3](https://github.com/user-attachments/assets/50ba222a-1356-4bd9-92ba-6280ea1b7318)
-![fig4](https://github.com/user-attachments/assets/ab9ed84b-88c3-41f3-9fe9-9f07448c85c0)
-![fig5](https://github.com/user-attachments/assets/e3a5525c-aa64-427f-a2b9-622f05b2cd3a)
-![fig6](https://github.com/user-attachments/assets/5535f212-5428-4457-bc34-e225bcd6628c)
-![fig7](https://github.com/user-attachments/assets/983cf2d7-5789-4035-bef1-90a94e223ccd)
 ![fig8](https://github.com/user-attachments/assets/d9d192ca-29f4-4083-a859-ffbca8aa8f38)
 ![fig9](https://github.com/user-attachments/assets/cb19129a-2e5c-47c0-bb3e-1eb5e911b78a)
 ![fig10](https://github.com/user-attachments/assets/7e9dcfca-6408-42f0-81a2-f1d45a64e189)
