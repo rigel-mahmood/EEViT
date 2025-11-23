@@ -20,7 +20,7 @@ Requirements.txt: packages required for Python environment
 ![fig13](https://github.com/user-attachments/assets/99920dc7-79ba-45cc-b078-db3f989b7dec)
 
 ## Citation
-```If our work contributes to your research, we would greatly appreciate a citation.
+If our work contributes to your research, we would greatly appreciate a citation.
 Citation format:
 @Article{ai6090233,
 AUTHOR = {Mahmood, Rigel and Patel, Sarosh and Elleithy, Khaled},
